@@ -1,4 +1,4 @@
-object frmCodeSiteSolver: TfrmCodeSiteSolver
+object frmCSDataGen: TfrmCSDataGen
   Left = 0
   Top = 0
   Caption = 'CodeSite Custom Data Generator'

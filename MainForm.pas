@@ -20,7 +20,7 @@ type
     Kind: TFieldKind;
   end;
 
-  TfrmCodeSiteSolver = class(TForm)
+  TfrmCSDataGen = class(TForm)
     pnlTop: TPanel;
     lblTitle: TLabel;
     pnlCenter: TPanel;
@@ -48,13 +48,13 @@ type
   end;
 
 var
-  frmCodeSiteSolver: TfrmCodeSiteSolver;
+  frmCSDataGen: TfrmCSDataGen;
 
 implementation
 
 {$R *.dfm}
 
-procedure TfrmCodeSiteSolver.FormCreate(Sender: TObject);
+procedure TfrmCSDataGen.FormCreate(Sender: TObject);
 begin
   spnSigFigs.Value := 6;
   spnSigFigs.MinValue := 1;
@@ -64,7 +64,7 @@ begin
 //  memoOutput.SyntaxCompletion.Active := True;
 end;
 
-procedure TfrmCodeSiteSolver.btnGenerateClick(Sender: TObject);
+procedure TfrmCSDataGen.btnGenerateClick(Sender: TObject);
 var
   RecordName: string;
   Fields: TArray<TParsedField>;
@@ -91,13 +91,13 @@ begin
   memoOutput.Lines.Text := Output;
 end;
 
-procedure TfrmCodeSiteSolver.btnCopyClick(Sender: TObject);
+procedure TfrmCSDataGen.btnCopyClick(Sender: TObject);
 begin
   Clipboard.AsText := memoOutput.Lines.Text;
   ShowMessage('Copied to clipboard.');
 end;
 
-function TfrmCodeSiteSolver.ExtractRecordName(const AText: string): string;
+function TfrmCSDataGen.ExtractRecordName(const AText: string): string;
 var
   Lines: TStringList;
   Line, Trimmed, Upper: string;
@@ -126,7 +126,7 @@ begin
   end;
 end;
 
-function TfrmCodeSiteSolver.ClassifyType(const ATypeName: string): TFieldKind;
+function TfrmCSDataGen.ClassifyType(const ATypeName: string): TFieldKind;
 var
   Upper: string;
 begin
@@ -149,7 +149,7 @@ begin
     Result := fkUnknown;
 end;
 
-function TfrmCodeSiteSolver.ParseRecordFields(const AText: string): TArray<TParsedField>;
+function TfrmCSDataGen.ParseRecordFields(const AText: string): TArray<TParsedField>;
 var
   Lines: TStringList;
   Line, Trimmed, Upper: string;
@@ -217,13 +217,14 @@ begin
   end;
 end;
 
-function TfrmCodeSiteSolver.GenerateUnit(const ARecordName: string;
+function TfrmCSDataGen.GenerateUnit(const ARecordName: string;
   const AFields: TArray<TParsedField>; ASigFigs: Integer): string;
 var
   SL: TStringList;
   ClassName, UnitName: string;
   Field: TParsedField;
   NeedsSigFigs: Boolean;
+  i: Integer;
 begin
   // Strip leading T if present for naming
   if (Length(ARecordName) > 1) and (ARecordName[1] = 'T') then
@@ -253,8 +254,11 @@ begin
     SL.Add('uses');
     SL.Add('  System.Classes,');
     SL.Add('  System.SysUtils,');
+    SL.Add('  StringUtils,');
     if NeedsSigFigs then
       SL.Add('  TestingHelpers,');
+    SL.Add('  Solverware.Logging,');
+    SL.Add('  Solverware.Logging.CodeSite,');
     SL.Add('  CodeSiteLogging;');
     SL.Add('');
 
@@ -266,12 +270,16 @@ begin
       SL.Add('    ' + Field.FieldName + ': ' + Field.FieldType + ';');
     SL.Add('  end;');
     SL.Add('');
-    SL.Add('  ' + ClassName + ' = class(TCodeSiteInterfacedObject, ICodeSiteCustomData)');
+    SL.Add('  ' + ClassName + ' = class(TCodeSiteInterfacedObject, ICodeSiteCustomData, ISWLogObject)');
     SL.Add('  protected');
     SL.Add('    procedure GetFormattedData(Data: TStringList);');
     SL.Add('    function InspectorType: TCodeSiteInspectorType;');
     SL.Add('    function MsgType: Integer;');
     SL.Add('    function TypeName: string;');
+
+    //IISWLogObject
+    SL.Add('    function GetCategory: string;');
+    SL.Add('    function GetFields: TArray<TSWLogField>;');
     SL.Add('  public');
 
     // Fields
@@ -297,31 +305,31 @@ begin
     SL.Add('');
 
     // GetFormattedData
-    SL.Add('procedure ' + ClassName + '.GetFormattedData(Data: TStringList);');
-    SL.Add('begin');
-    for Field in AFields do
-    begin
-      case Field.Kind of
-        fkDouble:
-          SL.Add('  Data.Add(''' + Field.FieldName + '='' + FloatToStr(RoundToSigFigs(' +
-            Field.FieldName + ', ' + IntToStr(ASigFigs) + ')));');
-        fkInteger:
-          SL.Add('  Data.Add(''' + Field.FieldName + '='' + IntToStr(' +
-            Field.FieldName + '));');
-        fkBoolean:
-          SL.Add('  Data.Add(''' + Field.FieldName + '='' + BoolToStr(' +
-            Field.FieldName + ', True));');
-        fkString:
-          SL.Add('  Data.Add(''' + Field.FieldName + '='' + ' +
-            Field.FieldName + ');');
-      else
-        // Unknown type - use generic ToString via TValue
-        SL.Add('  Data.Add(''' + Field.FieldName + '='' + ' +
-          Field.FieldName + '.ToString);');
-      end;
-    end;
-    SL.Add('end;');
-    SL.Add('');
+//    SL.Add('procedure ' + ClassName + '.GetFormattedData(Data: TStringList);');
+//    SL.Add('begin');
+//    for Field in AFields do
+//    begin
+//      case Field.Kind of
+//        fkDouble:
+//          SL.Add('  Data.Add(''' + Field.FieldName + '='' + FloatToStr(RoundToSigFigs(' +
+//            Field.FieldName + ', ' + IntToStr(ASigFigs) + ')));');
+//        fkInteger:
+//          SL.Add('  Data.Add(''' + Field.FieldName + '='' + IntToStr(' +
+//            Field.FieldName + '));');
+//        fkBoolean:
+//          SL.Add('  Data.Add(''' + Field.FieldName + '='' + BoolToStr(' +
+//            Field.FieldName + ', True));');
+//        fkString:
+//          SL.Add('  Data.Add(''' + Field.FieldName + '='' + ' +
+//            Field.FieldName + ');');
+//      else
+//        // Unknown type - use generic ToString via TValue
+//        SL.Add('  Data.Add(''' + Field.FieldName + '='' + ' +
+//          Field.FieldName + '.ToString);');
+//      end;
+//    end;
+//    SL.Add('end;');
+//    SL.Add('');
 
     // InspectorType
     SL.Add('function ' + ClassName + '.InspectorType: TCodeSiteInspectorType;');
@@ -343,6 +351,41 @@ begin
     SL.Add('  Result := ''' + ClassName + ''';');
     SL.Add('end;');
     SL.Add('');
+
+    // GetCategory
+    SL.Add('function ' + ClassName + '.GetCategory: string;');
+    SL.Add('begin');
+    SL.Add('  Result := ''' + ARecordName + ''';');
+    SL.Add('end;');
+    SL.Add('');
+
+    // GetFields
+    SL.Add('function ' + ClassName + '.GetFields: TArray<TSWLogField>;');
+    SL.Add('begin');
+    SL.Add('  Result := [');
+    for Field in AFields do
+      SL.Add(Format('%sTSWLogField.Create(''%s'', FormatSig(%s)),',
+              ['    ',Field.FieldName, Field.FieldName]));
+    // Remove trailing comma from last line
+    if SL.Count > 0 then
+      SL[SL.Count - 1] :=
+        SL[SL.Count - 1].TrimRight([',']);
+
+
+    SL.Add('  ];');
+    SL.Add('end;');
+    SL.Add('');
+
+    // GetFormattedData
+    SL.Add('procedure ' + ClassName + '.GetFormattedData(Data: TStringList);');
+    SL.Add('var');
+    SL.Add('  Field: TSWLogField;');
+    SL.Add('begin');
+    SL.Add('  for Field in GetFields do');
+    SL.Add('    Data.Values[Field.Name] := Field.Value;');
+    SL.Add('end;');
+    SL.Add('');
+
     SL.Add('');
     SL.Add('end.');
 
