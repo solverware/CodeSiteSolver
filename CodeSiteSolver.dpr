@@ -10,6 +10,6 @@ begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.Title := 'CodeSite Custom Data Generator';
-  Application.CreateForm(TfrmCodeSiteSolver, frmCodeSiteSolver);
+  Application.CreateForm(TfrmCSDataGen, frmCSDataGen);
   Application.Run;
 end.

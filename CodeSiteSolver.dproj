@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{D3B8CBD6-0C8F-4D50-80A3-AAC93DE49C9B}</ProjectGuid>
+        <ProjectGuid>{3642AE20-4C48-448A-B0EA-330E74CF3B0A}</ProjectGuid>
         <MainSource>CodeSiteSolver.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
